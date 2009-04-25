@@ -5,6 +5,9 @@ module Octopi
     find_path "/user/search/:query"
     resource_path "/user/show/:id"
     
+    @@traversed = {}
+    @@yielded = {}
+
     def self.find(username)
       self.validate_args(username => :user)
       super username
@@ -19,7 +22,25 @@ module Octopi
       self.validate_args(username => :user)
       self.property('following', username).map{|u| LazyUser.new u}
     end
-
+    
+    def self.traverse(username, &block)
+      username = String === username ? LazyUser.new(username) : username
+      queue = [username]
+      loop do
+        user = queue.pop
+        followers = self.followers user.login
+        @@traversed[user.login] = true
+        followers.each do |follower|
+          block.call(follower) unless @@yielded[follower.login]
+          @@yielded[follower.login] = true
+        end
+        queue.concat followers
+        queue.delete_if {|e| @@traversed[e.login]}
+        queue.uniq!  
+        break if queue.empty?
+      end  
+    end
+      
     def self.find_all(username)
       self.validate_args(username => :user)
       super username
