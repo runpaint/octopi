@@ -3,6 +3,7 @@ module Octopi
    
     attr_reader :username 
     alias :login :username
+    alias :hash  :username
 
     def initialize(arg)
       super @username = String === arg ? arg : arg.name
